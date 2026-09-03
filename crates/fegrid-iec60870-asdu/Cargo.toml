@@ -1,0 +1,26 @@
+[package]
+name = "fegrid-iec60870-asdu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Typed IEC 60870-5 ASDU codec"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+fegrid-iec60870-core = { workspace = true }
+winnow = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true }
+proptest = { workspace = true }
+arbitrary = { workspace = true }
+fegrid-iec60870-fixtures = { path = "../fegrid-iec60870-fixtures" }

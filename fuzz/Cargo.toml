@@ -1,0 +1,34 @@
+[package]
+name = "fegrid-iec60870-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+# Detach from root workspace so cargo-fuzz conventions work.
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+fegrid-iec60870-core = { path = "../crates/fegrid-iec60870-core" }
+fegrid-iec60870-asdu = { path = "../crates/fegrid-iec60870-asdu" }
+fegrid-iec60870-cs101 = { path = "../crates/fegrid-iec60870-cs101" }
+fegrid-iec60870-cs104 = { path = "../crates/fegrid-iec60870-cs104" }
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "apci_parse"
+path = "fuzz_targets/apci_parse.rs"
+
+[[bin]]
+name = "asdu_parse"
+path = "fuzz_targets/asdu_parse.rs"
+
+[[bin]]
+name = "ft12_parse"
+path = "fuzz_targets/ft12_parse.rs"
+
+[[bin]]
+name = "seq_window"
+path = "fuzz_targets/seq_window.rs"

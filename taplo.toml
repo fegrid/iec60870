@@ -1,0 +1,4 @@
+[formatting]
+align_comments = true
+reorder_arrays_and_tables = true
+allowed_blank_lines = 1

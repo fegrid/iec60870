@@ -1,0 +1,10 @@
+[package]
+name = "fegrid-iec60870-file"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+description = "File-transfer service layer (F_FR_NA_1 + F_SG_NA_1 + F_DR_TA_1) for IEC 60870-5."
+
+[dependencies]
+fegrid-iec60870-core = { path = "../fegrid-iec60870-core" }
+fegrid-iec60870-asdu = { path = "../fegrid-iec60870-asdu" }

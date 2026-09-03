@@ -1,0 +1,22 @@
+[package]
+name = "fegrid-iec60870-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Shared no_std primitives for fegrid-iec60870"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+winnow = { workspace = true }
+thiserror = { workspace = true }
+bitflags = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true }

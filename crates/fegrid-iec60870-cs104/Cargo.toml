@@ -1,0 +1,25 @@
+[package]
+name = "fegrid-iec60870-cs104"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "IEC 60870-5-104 APCI engine + typestate connection states"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+fegrid-iec60870-core = { workspace = true }
+fegrid-iec60870-asdu = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+bitflags = { workspace = true }
+
+[dev-dependencies]
+hex = { workspace = true }
+proptest = { workspace = true }

@@ -1,0 +1,77 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/fegrid-iec60870-core",
+    "crates/fegrid-iec60870-asdu",
+    "crates/fegrid-iec60870-cs101",
+    "crates/fegrid-iec60870-cs104",
+    "crates/fegrid-iec60870-tokio",
+    "crates/fegrid-iec60870-conformance",
+    "crates/fegrid-iec60870",
+    "crates/fegrid-iec60870-file",
+    "crates/fegrid-iec60870-secauth",
+    "crates/fegrid-iec60870-fixtures",
+]
+
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/fegrid/iec60870"
+
+[workspace.dependencies]
+fegrid-iec60870-core = { path = "crates/fegrid-iec60870-core" }
+fegrid-iec60870-asdu = { path = "crates/fegrid-iec60870-asdu" }
+fegrid-iec60870-cs101 = { path = "crates/fegrid-iec60870-cs101" }
+fegrid-iec60870-cs104 = { path = "crates/fegrid-iec60870-cs104" }
+fegrid-iec60870-tokio = { path = "crates/fegrid-iec60870-tokio" }
+
+# external
+winnow = { version = "1.0", default-features = false }
+bytes = "1"
+thiserror = { version = "2", default-features = false }
+bitflags = "2"
+hex = "0.4"
+tokio = { version = "1", features = ["net", "sync", "macros", "rt-multi-thread", "time", "io-util"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+serial2 = "0.2"
+serial2-tokio = "0.1"
+tracing = "0.1"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls-pemfile = "2"
+rcgen = "0.13"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+proptest = "1"
+arbitrary = { version = "1", features = ["derive"] }
+insta = { version = "1", features = ["glob"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libfuzzer-sys = "0.4"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_assignments = "warn"
+unused_mut = "warn"
+unused_variables = "warn"
+unused_imports = "warn"
+dead_code = "warn"
+unused_comparisons = "warn"
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+print_stdout = "warn"
+unwrap_used = "allow"
+expect_used = "allow"
+float_cmp = "allow"
+
+[profile.bench]
+debug = true
+
+[profile.dev]
+debug = true

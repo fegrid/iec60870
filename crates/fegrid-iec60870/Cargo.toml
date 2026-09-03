@@ -1,0 +1,17 @@
+[package]
+name = "fegrid-iec60870"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+description = "Umbrella crate re-exporting the fegrid-iec60870-* subcrates and the plugin system."
+
+[dependencies]
+fegrid-iec60870-core = { path = "../fegrid-iec60870-core" }
+fegrid-iec60870-asdu = { path = "../fegrid-iec60870-asdu" }
+fegrid-iec60870-cs101 = { path = "../fegrid-iec60870-cs101" }
+fegrid-iec60870-cs104 = { path = "../fegrid-iec60870-cs104" }
+fegrid-iec60870-tokio = { path = "../fegrid-iec60870-tokio", optional = true }
+
+[features]
+default = []
+tokio = ["dep:fegrid-iec60870-tokio"]

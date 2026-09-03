@@ -1,0 +1,15 @@
+[package]
+name = "fegrid-iec60870-fixtures"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared golden fixtures (hex vectors, etc.) for fegrid-iec60870 conformance + app tests."
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true

@@ -1,0 +1,8 @@
+[formatter.rust]
+command = "rustfmt"     # resolved from flake shell PATH = pinned toolchain's rustfmt
+includes = ["*.rs"]
+
+[formatter.toml]
+command = "taplo"
+options = ["format"]
+includes = ["*.toml"]

@@ -1,0 +1,45 @@
+[package]
+name = "fegrid-iec60870-tokio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Async tokio transport for IEC 60870-5-101/104"
+
+[lints]
+workspace = true
+
+[features]
+default = ["std", "serial"]
+std = []
+serial = ["dep:serial2", "dep:serial2-tokio"]
+tls = ["dep:rustls", "dep:tokio-rustls", "dep:rustls-pemfile"]
+
+[[test]]
+name = "tls104_loopback"
+path = "tests/tls104_loopback.rs"
+required-features = ["tls"]
+
+[[test]]
+name = "session104_loopback"
+path = "tests/session104_loopback.rs"
+
+[dependencies]
+fegrid-iec60870-core = { workspace = true }
+fegrid-iec60870-asdu = { workspace = true }
+fegrid-iec60870-cs101 = { workspace = true }
+fegrid-iec60870-cs104 = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serial2 = { workspace = true, optional = true }
+serial2-tokio = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+rustls-pemfile = { workspace = true, optional = true }
+futures = "0.3"
+
+[dev-dependencies]
+rcgen = { workspace = true }

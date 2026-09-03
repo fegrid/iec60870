@@ -1,0 +1,10 @@
+[package]
+name = "fegrid-iec60870-secauth"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+description = "IEC 62351-5 secure-authentication scaffolding for IEC 60870-5-7."
+
+[dependencies]
+fegrid-iec60870-core = { path = "../fegrid-iec60870-core" }
+fegrid-iec60870-asdu = { path = "../fegrid-iec60870-asdu" }
