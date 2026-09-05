@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a new feature, API surface, or workspace change.
+title: "[feat] "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for new runtime features, new public API surface, or
+        non-trivial tooling / CI changes. Small documentation fixes do not need
+        an issue — open a PR directly.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What limitation or friction are you hitting? What is the
+        use case this enables?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch the API, manifest change, or workflow. Reference
+        crates / modules affected.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Where does this live?
+      options:
+        - new crate in workspace
+        - new public API in existing crate
+        - new feature flag
+        - umbrella (`fegrid-iec60870`) re-export change
+        - CI / release tooling
+        - docs / examples only
+        - internal tooling only
+    validations:
+      required: true
+
+  - type: textarea
+    id: breaking
+    attributes:
+      label: Breaking change?
+      description: Does this require a `BREAKING CHANGE:` commit footer or a
+        major version bump? If so, what is the migration path?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you weighed and why you did not pick them.

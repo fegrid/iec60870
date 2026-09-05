@@ -1,0 +1,92 @@
+name: Bug report
+description: Report incorrect or unexpected behavior in a published runtime crate.
+title: "[bug] "
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in the sections below so we can
+        reproduce the issue. **Do not** disclose suspected security bugs here —
+        see [SECURITY.md](../SECURITY.md) for private reporting.
+
+  - type: dropdown
+    id: crate
+    attributes:
+      label: Affected crate
+      description: Which workspace crate shows the bug?
+      options:
+        - fegrid-iec60870 (umbrella)
+        - fegrid-iec60870-core
+        - fegrid-iec60870-asdu
+        - fegrid-iec60870-cs101
+        - fegrid-iec60870-cs104
+        - fegrid-iec60870-file
+        - fegrid-iec60870-secauth
+        - fegrid-iec60870-tokio
+        - fegrid-iec60870-conformance
+        - fegrid-iec60870-fixtures
+        - other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `cargo tree -p <crate> --depth 0 | grep fegrid-iec60870` or the exact tag/commit.
+      placeholder: e.g. 0.1.0, main@abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: rust_version
+    attributes:
+      label: Rust version
+      description: "Run `rustc --version` and paste the output."
+      placeholder: rustc 1.97.1 (...)
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: OS, architecture, transport (TCP / UDP / Serial / TLS).
+      placeholder: linux x86_64, transport=tcp
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Short code or test case. Link to a repo or paste a runnable snippet.
+      placeholder: |
+        ```rust
+        // ...
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: panic, wrong bytes, hang, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: capture
+    attributes:
+      label: Captures / logs
+      description: Optional. Attach a pcap, hex dump, or backtrace.

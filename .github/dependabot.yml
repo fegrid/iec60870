@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+    # Cargo workspace: every dep is reachable from the root lockfile, so
+    # monitor only at the workspace root.
+    open-pull-requests-limit: 10
+    # Major bumps for deps with `version = "X"` style specifiers are usually
+    # within semver-safe minor/patch windows in our tree; let dependabot
+    # open them and let reviewers evaluate.
+    # Auto-merge only patch-level security patches — keep it explicit
+    # below to make the policy visible in code review.
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+    # The release and CI workflows pin action SHAs. Dependabot will open
+    # PRs to bump the SHA and the version tag in lockstep; reviewers must
+    # confirm the SHA matches the new tag before merging.
+    commit-message:
+      prefix: "ci"
+      include: "scope"
