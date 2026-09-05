@@ -2,7 +2,7 @@
 //!
 //! For non-tokio embedders (RTOS, custom schedulers, embedded targets),
 //! the protocol crates can be driven without spawning any tasks. The
-//! [`run`] module exposes a synchronous entry point that takes a
+//! [`crate::run`] exposes a synchronous entry point that takes a
 //! transport-agnostic byte sink + byte source and drives a
 //! `Cs104Session<Started>` to completion.
 //!

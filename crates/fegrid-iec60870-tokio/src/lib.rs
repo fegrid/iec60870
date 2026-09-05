@@ -2,7 +2,7 @@
 //!
 //! Module map:
 //! - [`codec104`]: CS 104 framing over [`tokio_util::codec::Decoder`].
-//! - [`tls104`] *(feature `tls`)*: TLS-wrapped CS 104 transport
+//! - `tls104` *(feature `tls`)*: TLS-wrapped CS 104 transport
 //!   (rustls 0.23 / ring).  Reuses [`codec104::ApduCodec`] over a
 //!   `tokio_rustls::TlsStream<TcpStream>`; the protocol state machine
 //!   stays in `fegrid_iec60870_cs104`.
