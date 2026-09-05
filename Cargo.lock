@@ -300,7 +300,6 @@ dependencies = [
  "bytes",
  "fegrid-iec60870-asdu",
  "fegrid-iec60870-core",
- "hex",
  "proptest",
  "thiserror",
  "winnow",

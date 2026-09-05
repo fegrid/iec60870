@@ -24,7 +24,7 @@ use fegrid_iec60870_asdu::{Asdu, InformationValue};
 use fegrid_iec60870_core::{
     AppLayerParameters, CauseOfTransmission, CommonAddress, QualifierOfInterrogation,
 };
-use fegrid_iec60870_cs104::{ApciParameters, Apdu, Cs104Session, Started, Stopped};
+use fegrid_iec60870_cs104::{ApciParameters, Apdu, Cs104Session, Started, Stopped, UFrame};
 
 use crate::codec104::ApduCodec;
 use crate::master::RawMessageHandler;
@@ -446,81 +446,50 @@ impl Server {
                 waiting_recovered
             );
         }
-        // Drain inbound APDUs and route to handlers.
+        // Drain inbound APDUs and route to handlers. Interleave a 100 ms
+        // timer arm that flushes the outbound AsduQueue so a silent
+        // master (just STARTDT + GI/read) still receives spontaneous
+        // data (G-013). Without this drain, a master that sends no
+        // I-frames never wakes the outbound flush path.
         use tokio::io::AsyncWriteExt;
-        while let Some(item) = framed.next().await {
-            let apdu = match item {
-                Ok(a) => a,
-                Err(e) => {
-                    return Err(Session104Error::Codec(e));
-                }
-            };
-            if let Some(raw) = &raw {
-                let bytes = crate::codec104::apdu_to_wire(&apdu);
-                raw.on_raw(&bytes, false);
-            }
-            let Apdu::I {
-                asdu: Some(asdu), ..
-            } = apdu
-            else {
-                continue;
-            };
-            if !ca_filter.permits(asdu.common_address.0) {
-                // G-047: CA not allowed. Emit ACTIVATION_CON with
-                // COT_UNKNOWN_CA + negative P/N bit. Suppressed for
-                // monitor-direction (master is asking for data, not
-                // commanding). See IEC TS 60870-5-604 §7.2.
-                if is_control_direction(&asdu) {
-                    let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
-                        &asdu,
-                        fegrid_iec60870_core::CauseOfTransmission::UnknownCa,
-                    );
-                    if let Ok(bytes) = session.send_i(reject) {
-                        if let Some(raw) = &raw {
-                            raw.on_raw(&bytes, true);
+        let mut drain_tick = tokio::time::interval(std::time::Duration::from_millis(100));
+        drain_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            tokio::select! {
+                _ = drain_tick.tick() => {
+                    while let Some(queued) = queue.pop() {
+                        match session.send_i(queued) {
+                            Ok(bytes) => {
+                                if let Some(raw) = &raw {
+                                    raw.on_raw(&bytes, true);
+                                }
+                                framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
+                            }
+                            Err(e) => return Err(Session104Error::Protocol(e)),
                         }
-                        let mut sink = framed.into_inner();
-                        let _ = sink.write_all(&bytes).await;
-                        framed = Framed::new(sink, ApduCodec::new());
                     }
                 }
-                continue;
-            }
-            // G-047: IOA == 0 on a control command. Emit
-            // COT_UNKNOWN_IOA per IEC TS 60870-5-604 §7.2.
-            if is_control_direction(&asdu) && asdu.objects.iter().any(|o| o.ioa == 0) {
-                let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
-                    &asdu,
-                    fegrid_iec60870_core::CauseOfTransmission::UnknownIoa,
-                );
-                if let Ok(bytes) = session.send_i(reject) {
+                next = framed.next() => {
+                    let Some(item) = next else { break };
+                    let apdu = match item {
+                        Ok(a) => a,
+                        Err(e) => return Err(Session104Error::Codec(e)),
+                    };
                     if let Some(raw) = &raw {
-                        raw.on_raw(&bytes, true);
+                        let bytes = crate::codec104::apdu_to_wire(&apdu);
+                        raw.on_raw(&bytes, false);
                     }
-                    let mut sink = framed.into_inner();
-                    let _ = sink.write_all(&bytes).await;
-                    framed = Framed::new(sink, ApduCodec::new());
+                    for bytes in self.dispatch_apdu(
+                        apdu,
+                        &mut session,
+                        &handlers,
+                        ca_filter.as_ref(),
+                        raw.as_ref(),
+                        &queue,
+                    )? {
+                        framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
+                    }
                 }
-                continue;
-            }
-            if let Some(con) = handlers.dispatch(&asdu) {
-                let bytes = session.send_i(con).map_err(Session104Error::Protocol)?;
-                if let Some(raw) = &raw {
-                    raw.on_raw(&bytes, true);
-                }
-                let mut sink = framed.into_inner();
-                sink.write_all(&bytes).await.map_err(Session104Error::Io)?;
-                framed = Framed::new(sink, ApduCodec::new());
-            }
-            // Also drain queued ASDUs if any.
-            while let Some(queued) = queue.pop() {
-                let bytes = session.send_i(queued).map_err(Session104Error::Protocol)?;
-                if let Some(raw) = &raw {
-                    raw.on_raw(&bytes, true);
-                }
-                let mut sink = framed.into_inner();
-                sink.write_all(&bytes).await.map_err(Session104Error::Io)?;
-                framed = Framed::new(sink, ApduCodec::new());
             }
         }
         // G-013: connection closed. Any ASDUs still queued (because
@@ -535,6 +504,111 @@ impl Server {
             );
         }
         Ok(())
+    }
+
+    /// Dispatch a single decoded inbound APDU: route non-I frames,
+    /// apply CA / IOA=0 validation, invoke the command handler, and
+    /// drain any queued spontaneous ASDUs. Returns the wire bytes
+    /// (in send order) for the caller to write to the TCP stream.
+    /// Extracted from `serve()` so the `tokio::select!` body stays
+    /// focused on multiplexing inbound frames with the periodic
+    /// outbound drain. `session` is owned exclusively by this
+    /// per-connection task; the other parameters are cheap clones.
+    fn dispatch_apdu(
+        &self,
+        apdu: Apdu,
+        session: &mut Cs104Session<Started>,
+        handlers: &ServerHandlers,
+        ca_filter: &dyn IsCaAllowed,
+        raw: Option<&Arc<dyn RawMessageHandler>>,
+        queue: &Arc<AsduQueue>,
+    ) -> Result<Vec<Vec<u8>>, Session104Error> {
+        let mut out: Vec<Vec<u8>> = Vec::new();
+        let raw_obj: Option<&dyn RawMessageHandler> = raw.map(|a| a.as_ref());
+        let Apdu::I {
+            asdu: Some(asdu), ..
+        } = apdu
+        else {
+            // Non-I-frame: S-frame (master acks) and U-frame
+            // (TESTFR_ACT / STOPDT_ACT) need a response. The
+            // spec requires us to act on these even though the
+            // master hasn't sent an I-frame.
+            match &apdu {
+                Apdu::S { nr } => session.on_s_received(*nr),
+                Apdu::U(UFrame::TestFrAct) => {
+                    let bytes = fegrid_iec60870_cs104::u_frame_bytes(UFrame::TestFrCon);
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+                Apdu::U(UFrame::StopDtAct) => {
+                    let bytes = fegrid_iec60870_cs104::u_frame_bytes(UFrame::StopDtCon);
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+                _ => return Ok(out),
+            }
+            return Ok(out);
+        };
+        if !ca_filter.permits(asdu.common_address.0) {
+            // G-047: CA not allowed. Emit ACTIVATION_CON with
+            // COT_UNKNOWN_CA + negative P/N bit. Suppressed for
+            // monitor-direction (master is asking for data, not
+            // commanding). See IEC TS 60870-5-604 §7.2.
+            if is_control_direction(&asdu) {
+                let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
+                    &asdu,
+                    fegrid_iec60870_core::CauseOfTransmission::UnknownCa,
+                );
+                if let Ok(bytes) = session.send_i(reject) {
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+            }
+            return Ok(out);
+        }
+        // G-047: IOA == 0 on a control command. Emit
+        // COT_UNKNOWN_IOA per IEC TS 60870-5-604 §7.2. Standard
+        // commands (C_IC_NA_1, C_CI_NA_1, C_RD_NA_1, C_CS_NA_1,
+        // C_RP_NA_1, C_CD_NA_1) carry a reserved IOA=0 field and
+        // are exempted so the server accepts IOA=0 on standard commands.
+        if is_control_direction(&asdu)
+            && !is_standard_command_with_reserved_ioa_zero(&asdu)
+            && asdu.objects.iter().any(|o| o.ioa == 0)
+        {
+            let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
+                &asdu,
+                fegrid_iec60870_core::CauseOfTransmission::UnknownIoa,
+            );
+            if let Ok(bytes) = session.send_i(reject) {
+                if let Some(r) = raw_obj {
+                    r.on_raw(&bytes, true);
+                }
+                out.push(bytes.to_vec());
+            }
+            return Ok(out);
+        }
+        if let Some(con) = handlers.dispatch(&asdu) {
+            let bytes = session.send_i(con).map_err(Session104Error::Protocol)?;
+            if let Some(r) = raw_obj {
+                r.on_raw(&bytes, true);
+            }
+            out.push(bytes.to_vec());
+        }
+        // Also drain queued ASDUs if any.
+        while let Some(queued) = queue.pop() {
+            let bytes = session.send_i(queued).map_err(Session104Error::Protocol)?;
+            if let Some(r) = raw_obj {
+                r.on_raw(&bytes, true);
+            }
+            out.push(bytes.to_vec());
+        }
+        Ok(out)
     }
 }
 
@@ -551,6 +625,22 @@ fn is_control_direction(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
             | Cot::ActivationCon
             | Cot::DeactivationCon
             | Cot::ActivationTermination
+    )
+}
+
+/// IEC 60870-5-101 §7.4 standard commands whose IOA field is reserved
+/// as zero. Skipping the IOA=0 validation for these keeps the server
+/// interoperable with peers that accept IOA=0 on GI/RI/clock-sync/read.
+fn is_standard_command_with_reserved_ioa_zero(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
+    use fegrid_iec60870_core::TypeId;
+    matches!(
+        asdu.type_id,
+        TypeId::C_IC_NA_1
+            | TypeId::C_CI_NA_1
+            | TypeId::C_RD_NA_1
+            | TypeId::C_CS_NA_1
+            | TypeId::C_RP_NA_1
+            | TypeId::C_CD_NA_1
     )
 }
 /// Builder for an `IsCaAllowed` filter from a static allow-list.

@@ -300,13 +300,19 @@ pub mod cmds {
             )],
         }
     }
-
-    /// Build a `C_RD_NA_1` (read) ASDU body.
+    /// Build a `C_RD_NA_1` (read) ASDU body. Per IEC 60870-5-101 §7.3.5
+    /// the read command uses COT=Request (5), not Activation (6) —
     pub fn read(ca: u16, ioa: u32) -> Asdu {
         Asdu {
             type_id: TypeId::C_RD_NA_1,
             original_type_byte: TypeId::C_RD_NA_1 as u8,
-            cot: build_cot(),
+            cot: CotField {
+                cause: CauseOfTransmission::Request,
+                negative_confirm: false,
+                test: false,
+                originator: 0,
+                cause_raw_override: None,
+            },
             common_address: CommonAddress(ca),
             is_sequence: false,
             is_test: false,

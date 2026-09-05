@@ -284,10 +284,17 @@ impl Cs104Session<Started> {
             _state: core::marker::PhantomData,
         }
     }
-
     /// Borrow the sequence state (for tests).
     pub fn seq(&self) -> &SequenceState {
         &self.seq
+    }
+
+    /// Acknowledge an inbound S-frame (master's ack). Updates the
+    /// send-window so the next `send_i` can advance. Used by the
+    /// tokio server runtime to process acks without re-parsing
+    /// the wire bytes.
+    pub fn on_s_received(&mut self, nr: SeqNo) {
+        self.seq.on_s_received(nr);
     }
 }
 
