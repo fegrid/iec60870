@@ -12,7 +12,7 @@
 //!
 //! Every transition returns `(Self<NewState>, Asdu)`. The transport is
 //! responsible for wiring the `Asdu` onto the wire; the engines never
-//! touch I/O. Errors are plain data and feed the [`Display`]/[`Error`]
+//! touch I/O. Errors are plain data and feed the `Display`/`Error`
 //! impls on [`FileTransferError`].
 //!
 //! All emitted ASDUs use `cot.cause = CauseOfTransmission::FileTransfer`

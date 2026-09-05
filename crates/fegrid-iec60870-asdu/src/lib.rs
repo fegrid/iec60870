@@ -51,3 +51,4 @@ pub use values::{
     BinaryCounterReading, FileAckRepr, FileCallRepr, FileLastSectionRepr, FileReadyRepr,
     InformationValue, SectionReadyRepr,
 };
+pub use values_encode::{body_len_for_type, has_cp24, has_cp56};

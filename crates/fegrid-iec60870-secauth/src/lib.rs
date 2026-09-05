@@ -5,7 +5,7 @@
 //!
 //! This crate provides a transport-agnostic key-management interface
 //! and a `SecureAuthPlugin` adapter that implements the umbrella
-//! [`fegrid_iec60870::Plugin`] trait. Concrete cryptographic
+//! `Plugin` trait. Concrete cryptographic
 //! operations are delegated to user-provided [`KeyProvider`] +
 //! [`ChallengeHandler`] impls — the runtime does NOT assume any
 //! particular algorithm (GMac, RSA, ECDSA, etc).

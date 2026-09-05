@@ -4,9 +4,9 @@
 //! crates can use to register file-transfer (F-042), secure-auth
 //! (G-046), and other side-channel services. Hooks live on:
 //!
-//! - [`fegrid_iec60870_cs101::Cs101Slave`] — see [`PluginHook`]
+//! - [`fegrid_iec60870_cs101::Cs101Slave`] — see `PluginHook`
 //!   already exposed for the FT 1.2 slave side.
-//! - [`crate::cs104::Cs104Server`] — see [`crate::cs104::ServerHandlers`]
+//! - `crate::cs104::Cs104Server` — see `crate::cs104::ServerHandlers`
 //!   and the `with_plugin` extension point.
 //!
 //! The registry lives here so that all plugins can be enumerated from a
