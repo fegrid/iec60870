@@ -27,7 +27,7 @@ confidence-threshold = 0.8
 
 [bans]
 multiple-versions = "warn"
-wildcard-dependencies = "warn"
+wildcards = "warn"
 highlight = "all"
 deny = []
 
