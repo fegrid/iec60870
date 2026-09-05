@@ -444,13 +444,20 @@ fn ensure_provider() {
 }
 
 fn parse_certs(pem: &str) -> Result<Vec<CertificateDer<'static>>, TlsError> {
-    let mut cursor = std::io::Cursor::new(pem.as_bytes());
-    rustls_pemfile::certs(&mut cursor)
+    use rustls::pki_types::pem::PemObject;
+    CertificateDer::pem_slice_iter(pem.as_bytes())
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| TlsError::Pem(e.to_string()))
 }
 
 fn parse_key(pem: &str) -> Result<PrivateKeyDer<'static>, TlsError> {
-    let mut cursor = std::io::Cursor::new(pem.as_bytes());
-    rustls_pemfile::private_key(&mut cursor)?.ok_or(TlsError::NoMaterial)
+    use rustls::pki_types::pem::PemObject;
+    PrivateKeyDer::from_pem_slice(pem.as_bytes())
+        .map_err(|e| TlsError::Pem(e.to_string()))
+        .and_then(|k| match k {
+            PrivateKeyDer::Pkcs1(_) | PrivateKeyDer::Pkcs8(_) | PrivateKeyDer::Sec1(_) => Ok(k),
+            // PrivateKeyDer is #[non_exhaustive]; cover any future variant by
+            // treating it as 'no usable material' rather than a hard panic.
+            _ => Err(TlsError::NoMaterial),
+        })
 }

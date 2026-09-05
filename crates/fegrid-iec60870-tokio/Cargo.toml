@@ -13,7 +13,7 @@ workspace = true
 default = ["std", "serial"]
 std = []
 serial = ["dep:serial2", "dep:serial2-tokio"]
-tls = ["dep:rustls", "dep:tokio-rustls", "dep:rustls-pemfile"]
+tls = ["dep:rustls", "dep:tokio-rustls"]
 
 [[test]]
 name = "tls104_loopback"
@@ -38,7 +38,7 @@ serial2 = { workspace = true, optional = true }
 serial2-tokio = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 tokio-rustls = { workspace = true, optional = true }
-rustls-pemfile = { workspace = true, optional = true }
+
 futures = "0.3"
 
 [dev-dependencies]
