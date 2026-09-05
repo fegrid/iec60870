@@ -23,4 +23,4 @@ bytes = { workspace = true }
 hex = { workspace = true }
 proptest = { workspace = true }
 arbitrary = { workspace = true }
-fegrid-iec60870-fixtures = { path = "../fegrid-iec60870-fixtures" }
+fegrid-iec60870-fixtures = { workspace = true }

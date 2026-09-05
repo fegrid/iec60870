@@ -6,11 +6,11 @@ license.workspace = true
 description = "Pure IEC 60870-5 (IEC 870) implementation in Rust - typed ASDU codec, sans-IO master/outstation, CS 101/104 framing, APCI engine, file-transfer service, IEC 62351-5 secure-auth, conformance suite. Umbrella re-export with optional tokio driver."
 
 [dependencies]
-fegrid-iec60870-core = { path = "../fegrid-iec60870-core" }
-fegrid-iec60870-asdu = { path = "../fegrid-iec60870-asdu" }
-fegrid-iec60870-cs101 = { path = "../fegrid-iec60870-cs101" }
-fegrid-iec60870-cs104 = { path = "../fegrid-iec60870-cs104" }
-fegrid-iec60870-tokio = { path = "../fegrid-iec60870-tokio", optional = true }
+fegrid-iec60870-core = { workspace = true }
+fegrid-iec60870-asdu = { workspace = true }
+fegrid-iec60870-cs101 = { workspace = true }
+fegrid-iec60870-cs104 = { workspace = true }
+fegrid-iec60870-tokio = { workspace = true, optional = true }
 
 [features]
 default = []

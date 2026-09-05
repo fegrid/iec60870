@@ -22,11 +22,14 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/fegrid/iec60870"
 
 [workspace.dependencies]
-fegrid-iec60870-core = { path = "crates/fegrid-iec60870-core" }
-fegrid-iec60870-asdu = { path = "crates/fegrid-iec60870-asdu" }
-fegrid-iec60870-cs101 = { path = "crates/fegrid-iec60870-cs101" }
-fegrid-iec60870-cs104 = { path = "crates/fegrid-iec60870-cs104" }
-fegrid-iec60870-tokio = { path = "crates/fegrid-iec60870-tokio" }
+fegrid-iec60870-core = { path = "crates/fegrid-iec60870-core", version = "0.1.0" }
+fegrid-iec60870-asdu = { path = "crates/fegrid-iec60870-asdu", version = "0.1.0" }
+fegrid-iec60870-cs101 = { path = "crates/fegrid-iec60870-cs101", version = "0.1.0" }
+fegrid-iec60870-cs104 = { path = "crates/fegrid-iec60870-cs104", version = "0.1.0" }
+fegrid-iec60870-tokio = { path = "crates/fegrid-iec60870-tokio", version = "0.1.0" }
+fegrid-iec60870-fixtures = { path = "crates/fegrid-iec60870-fixtures", version = "0.1.0" }
+fegrid-iec60870-file = { path = "crates/fegrid-iec60870-file", version = "0.1.0" }
+fegrid-iec60870-secauth = { path = "crates/fegrid-iec60870-secauth", version = "0.1.0" }
 
 # external
 winnow = { version = "1.0", default-features = false }
