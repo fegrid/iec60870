@@ -70,7 +70,7 @@ jobs:
         run: cargo deny check
 
       - name: cargo audit
-        run: cargo audit
+        run: cargo audit --db-path ~/.cargo/audit-db
 
   msrv:
     name: MSRV (1.88.0)
