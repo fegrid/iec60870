@@ -3,7 +3,7 @@ name = "fegrid-iec60870"
 version = "0.1.0"
 edition = "2024"
 license.workspace = true
-description = "Umbrella crate re-exporting the fegrid-iec60870-* subcrates and the plugin system."
+description = "Pure IEC 60870-5 (IEC 870) implementation in Rust - typed ASDU codec, sans-IO master/outstation, CS 101/104 framing, APCI engine, file-transfer service, IEC 62351-5 secure-auth, conformance suite. Umbrella re-export with optional tokio driver."
 
 [dependencies]
 fegrid-iec60870-core = { path = "../fegrid-iec60870-core" }
