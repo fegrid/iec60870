@@ -11,7 +11,7 @@ use tokio::net::TcpListener;
 use fegrid_iec60870_asdu::{Asdu, InformationObject, InformationValue};
 use fegrid_iec60870_core::{CauseOfTransmission, CommonAddress, CotField, TypeId};
 use fegrid_iec60870_cs104::{Apdu, SeqNo, UFrame};
-use fegrid_iec60870_tokio::{
+use fegrid_iec60870_tokio::tls104::{
     Tls104Acceptor, Tls104Connector, TlsClientConfig, TlsError, TlsIdentity, TlsServerConfig,
     TlsTrustRoots,
 };

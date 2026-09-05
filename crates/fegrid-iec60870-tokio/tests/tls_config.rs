@@ -4,13 +4,11 @@
 //! without doing a full handshake (which would require a real cert).
 
 #![cfg(feature = "tls")]
-
-use fegrid_iec60870_tokio::TlsClientConfig;
-use fegrid_iec60870_tokio::TlsError;
+use fegrid_iec60870_tokio::tls104::{TlsClientConfig, TlsError, TlsTrustRoots};
 
 #[test]
 fn empty_pem_is_rejected() {
-    let res = fegrid_iec60870_tokio::TlsTrustRoots::from_pem("");
+    let res = TlsTrustRoots::from_pem("");
     assert!(matches!(res, Err(TlsError::NoMaterial)));
 }
 
@@ -28,7 +26,9 @@ fn client_config_builder_compiles() {
     // build a real TlsTrustRoots here without a PEM, so we only check
     // that the API surface compiles.
     fn _takes(_: TlsClientConfig) {}
-    fn _build(_trust: fegrid_iec60870_tokio::TlsTrustRoots) -> TlsClientConfig {
+    fn _build(_trust: TlsTrustRoots) -> TlsClientConfig {
         TlsClientConfig::new(_trust).with_alpn_protocols(vec![b"x".to_vec()])
     }
+    let _ = _takes;
+    let _ = _build;
 }
