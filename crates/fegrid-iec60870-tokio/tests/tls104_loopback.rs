@@ -19,7 +19,7 @@ use fegrid_iec60870_tokio::tls104::{
 fn self_signed() -> (String, String) {
     let ck = rcgen::generate_simple_self_signed(vec!["localhost".to_string()]).expect("rcgen");
     let cert = ck.cert.pem();
-    let key_pem = ck.key_pair.serialize_pem();
+    let key_pem = ck.signing_key.serialize_pem();
     (cert, key_pem)
 }
 
