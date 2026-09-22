@@ -6,7 +6,6 @@ members = [
     "crates/fegrid-iec60870-cs101",
     "crates/fegrid-iec60870-cs104",
     "crates/fegrid-iec60870-tokio",
-    "crates/fegrid-iec60870-conformance",
     "crates/fegrid-iec60870",
     "crates/fegrid-iec60870-file",
     "crates/fegrid-iec60870-secauth",
@@ -31,7 +30,6 @@ fegrid-iec60870-tokio = { path = "crates/fegrid-iec60870-tokio", version = "0.1.
 fegrid-iec60870-fixtures = { path = "crates/fegrid-iec60870-fixtures", version = "0.1.0" }
 fegrid-iec60870-file = { path = "crates/fegrid-iec60870-file", version = "0.1.0" }
 fegrid-iec60870-secauth = { path = "crates/fegrid-iec60870-secauth", version = "0.1.0" }
-fegrid-iec60870-conformance = { path = "crates/fegrid-iec60870-conformance", version = "0.1.0" }
 
 # external
 winnow = { version = "1.0", default-features = false }

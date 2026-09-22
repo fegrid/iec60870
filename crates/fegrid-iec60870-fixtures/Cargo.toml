@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Shared golden fixtures (hex vectors, etc.) for fegrid-iec60870 conformance + app tests."
+description = "Shared golden fixtures (hex vectors, etc.) for fegrid-iec60870 tests."
 publish = false
 
 [lib]

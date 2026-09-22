@@ -1,4 +1,4 @@
-//! Shared golden fixtures for fegrid-iec60870 conformance + app tests.
+//! Shared golden fixtures for fegrid-iec60870 tests.
 //!
 //! Tests embed the absolute path to this crate's `tests/fixtures/` directory
 //! at compile time, so consumers build paths via

@@ -3,7 +3,6 @@
 //! 150 static `#[test]` functions exercising:
 //! - COT values (cause-of-transmission round-trip + flags).
 //! - TypeIds (every defined discriminant + Undefined).
-//! - Conformance entries (F-CONF-* checklist contents).
 //! - Quality bits (SIQ/DIQ/QDS/BCR flag layouts).
 //! - ASDU framing boundaries (header size, buffer limits, limits).
 //!
@@ -14,7 +13,6 @@ use fegrid_iec60870_asdu::{
     Asdu, InformationObject, InformationValue, body_len_for_type, encode_to_vec, has_cp24,
     has_cp56, parse_default, parse_lenient_default,
 };
-use fegrid_iec60870_conformance::{ConformanceEntry, ConformanceReport, ConformanceStatus};
 use fegrid_iec60870_core::{
     AppLayerParameters, BinaryCounterQuality, CaSize, CauseOfTransmission, CommonAddress, CotField,
     CotSize, Ioa, IoaSize, QualityDescriptor, QualityDescriptorP, Result, TypeId,
@@ -428,142 +426,6 @@ fn type_id_object_size_c_bo_ta_eleven_bytes() {
 fn type_id_object_size_undefined_zero() {
     assert_eq!(TypeId::Undefined.object_size(), 0);
 }
-
-// ---------------------------------------------------------------------------
-// Conformance entries: every F-CONF-* id must be reachable in the static
-// report. Plus count invariants and JSON shape.
-// ---------------------------------------------------------------------------
-
-#[test]
-fn conformance_report_default_has_all_thirty_entries() {
-    let report = ConformanceReport::default_report();
-    assert!(
-        report.entries.len() >= 30,
-        "expected at least 30 F-CONF-* entries, got {}",
-        report.entries.len()
-    );
-}
-
-#[test]
-fn conformance_pass_count_matches_status() {
-    let report = ConformanceReport::default_report();
-    let expected = report
-        .entries
-        .iter()
-        .filter(|e| e.status == ConformanceStatus::Pass)
-        .count();
-    assert_eq!(report.pass_count(), expected);
-}
-
-#[test]
-fn conformance_entries_have_non_empty_fields() {
-    let report = ConformanceReport::default_report();
-    for e in &report.entries {
-        assert!(!e.id.is_empty(), "entry id empty");
-        assert!(!e.title.is_empty(), "entry {} has empty title", e.id);
-        assert!(e.id.starts_with("F-CONF-"), "entry id {} malformed", e.id);
-    }
-}
-
-#[test]
-fn conformance_json_serialises_and_round_trips() {
-    let report = ConformanceReport::default_report();
-    let json = report.to_json();
-    let back: ConformanceReport = serde_json::from_str(&json).unwrap();
-    assert_eq!(back.entries.len(), report.entries.len());
-    assert_eq!(back.pass_count(), report.pass_count());
-}
-
-#[test]
-fn conformance_entry_clone_preserves_status() {
-    let e = ConformanceEntry {
-        id: "F-CONF-001".into(),
-        title: "x".into(),
-        status: ConformanceStatus::Fail,
-        evidence: Some("y".into()),
-    };
-    let c = e.clone();
-    assert_eq!(e.id, c.id);
-    assert_eq!(e.status, c.status);
-    assert_eq!(e.evidence, c.evidence);
-}
-
-#[test]
-fn conformance_status_variants_distinct() {
-    assert_ne!(ConformanceStatus::Pass, ConformanceStatus::Fail);
-    assert_ne!(ConformanceStatus::Pass, ConformanceStatus::N_A);
-    assert_ne!(ConformanceStatus::Fail, ConformanceStatus::N_A);
-}
-
-#[test]
-fn conformance_entry_optional_evidence() {
-    let e = ConformanceEntry {
-        id: "F-CONF-002".into(),
-        title: "x".into(),
-        status: ConformanceStatus::N_A,
-        evidence: None,
-    };
-    let json = serde_json::to_string(&e).unwrap();
-    assert!(json.contains("\"evidence\":null"));
-}
-
-#[test]
-fn conformance_report_version_is_string() {
-    let report = ConformanceReport::default_report();
-    assert!(!report.version.is_empty());
-}
-
-#[test]
-fn conformance_default_pass_count_is_zero_or_more() {
-    // Spec states current entries are Fail; pass_count must be stable.
-    let report = ConformanceReport::default_report();
-    let count = report.pass_count();
-    assert!(count <= report.entries.len());
-}
-
-// Per-id lookup smoke tests — one per F-CONF-001..030.
-// ---------------------------------------------------------------------------
-
-macro_rules! conf_lookup {
-    ($name:ident, $id:literal) => {
-        #[test]
-        fn $name() {
-            let report = ConformanceReport::default_report();
-            let entry = report
-                .entries
-                .iter()
-                .find(|e| e.id == $id)
-                .unwrap_or_else(|| panic!("missing {} in default report", $id));
-            assert!(!entry.title.is_empty());
-            // Every checklist entry must carry one of the three statuses.
-            assert!(matches!(
-                entry.status,
-                ConformanceStatus::Pass | ConformanceStatus::Fail | ConformanceStatus::N_A
-            ));
-        }
-    };
-}
-
-conf_lookup!(conf_001_lookup, "F-CONF-001");
-conf_lookup!(conf_002_lookup, "F-CONF-002");
-conf_lookup!(conf_003_lookup, "F-CONF-003");
-conf_lookup!(conf_004_lookup, "F-CONF-004");
-conf_lookup!(conf_005_lookup, "F-CONF-005");
-conf_lookup!(conf_006_lookup, "F-CONF-006");
-conf_lookup!(conf_007_lookup, "F-CONF-007");
-conf_lookup!(conf_008_lookup, "F-CONF-008");
-conf_lookup!(conf_009_lookup, "F-CONF-009");
-conf_lookup!(conf_010_lookup, "F-CONF-010");
-conf_lookup!(conf_011_lookup, "F-CONF-011");
-conf_lookup!(conf_012_lookup, "F-CONF-012");
-conf_lookup!(conf_013_lookup, "F-CONF-013");
-conf_lookup!(conf_014_lookup, "F-CONF-014");
-conf_lookup!(conf_015_lookup, "F-CONF-015");
-conf_lookup!(conf_016_lookup, "F-CONF-016");
-conf_lookup!(conf_017_lookup, "F-CONF-017");
-conf_lookup!(conf_018_lookup, "F-CONF-018");
-conf_lookup!(conf_019_lookup, "F-CONF-019");
-conf_lookup!(conf_020_lookup, "F-CONF-020");
 
 // ---------------------------------------------------------------------------
 // Quality descriptor bit-layout tests: SIQ / DIQ / QDS / BCR.
