@@ -25,8 +25,6 @@ use tokio_util::codec::Framed;
 
 use crate::codec104::ApduCodec;
 
-/// IEC 60870-5-104 default TLS port.
-
 /// Errors returned by the TLS-104 transport.
 #[derive(Debug, Error)]
 pub enum TlsError {
@@ -429,8 +427,7 @@ impl Tls104Connector {
     pub fn new(cfg: &TlsClientConfig, server_name: &str) -> Result<Self, TlsError> {
         ensure_provider();
 
-        let mut builder =
-            rustls::ClientConfig::builder().with_root_certificates(cfg.trust.0.clone());
+        let builder = rustls::ClientConfig::builder().with_root_certificates(cfg.trust.0.clone());
         // If a client identity was supplied via
         // `TlsClientConfig::with_client_identity`, enable mTLS by
         // swapping `with_no_client_auth()` for
