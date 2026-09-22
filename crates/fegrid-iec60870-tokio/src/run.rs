@@ -8,12 +8,11 @@
 //!
 //! Usage:
 //! ```no_run
-//! use fegrid_iec60870_cs104::{ApciParameters, Cs104Session, Stopped};
-//! use fegrid_iec60870_tokio::run::run_threadless_server;
+//! use fegrid_iec60870_tokio::run::{default_session, run_threadless_server};
 //! let mut buf_in: Vec<u8> = Vec::new();
 //! let mut buf_out: Vec<u8> = Vec::new();
-//! let session = Cs104Session::<Stopped>::new(ApciParameters::default(), Default::default());
-//! run_threadless_server(&mut buf_in, &mut buf_out, session, |asdu| None);
+//! let (_apci, _app, started) = default_session().expect("handshake");
+//! run_threadless_server(&mut buf_in, &mut buf_out, started, Box::new(|_asdu| None));
 //! ```
 
 use fegrid_iec60870_asdu::Asdu;

@@ -122,6 +122,14 @@ impl AsduQueue {
         q.push_back(asdu);
     }
     /// Pop the next ASDU off the front.
+    /// Push an ASDU onto the FRONT of the queue. Used to re-queue an ASDU that failed to encode because the slave's k-window was full: the same frame must be retried on the next send opportunity (after the master has ACKed enough I-frames to make room in the window). Honours `cap` by dropping the newest entry if the queue is at capacity.
+    pub fn push_front(&self, asdu: Asdu) {
+        let mut q = self.inner.lock().unwrap_or_else(|p| p.into_inner());
+        if self.cap > 0 && q.len() >= self.cap {
+            q.pop_back();
+        }
+        q.push_front(asdu);
+    }
     pub fn pop(&self) -> Option<Asdu> {
         self.inner
             .lock()
@@ -254,6 +262,10 @@ pub struct ServerConfig {
     pub handlers: ServerHandlers,
     pub raw: Option<Arc<dyn RawMessageHandler>>,
     pub queue_cap: usize,
+    /// IEC 60870-5-7 secure-authentication plugin (COT 14/15/16
+    /// on C_ACSE_NA_3 type id 135). `None` means the server emits
+    /// ACT_CON negative for any inbound secure-auth frame.
+    pub secure_auth_plugin: Option<Arc<fegrid_iec60870_secauth::SecureAuthPlugin>>,
 }
 
 impl ServerConfig {
@@ -273,6 +285,7 @@ impl ServerConfig {
             handlers: default_handlers(),
             raw: None,
             queue_cap: 1024,
+            secure_auth_plugin: None,
         }
     }
     /// Set the mode (G-004).
@@ -318,6 +331,17 @@ impl ServerConfig {
     /// Override queue capacity (G-013, G-014).
     pub fn queue_cap(mut self, n: usize) -> Self {
         self.queue_cap = n;
+        self
+    }
+    /// Install a secure-authentication plugin (IEC 60870-5-7).
+    /// When set, the server routes COT 14/15/16 frames of type
+    /// C_ACSE_NA_3 (135) through `plugin.sign(...)` and emits
+    /// ACT_CON positive with status bit 0x80 set in the CA field.
+    pub fn secure_auth_plugin(
+        mut self,
+        plugin: Arc<fegrid_iec60870_secauth::SecureAuthPlugin>,
+    ) -> Self {
+        self.secure_auth_plugin = Some(plugin);
         self
     }
 }
@@ -454,10 +478,22 @@ impl Server {
         use tokio::io::AsyncWriteExt;
         let mut drain_tick = tokio::time::interval(std::time::Duration::from_millis(100));
         drain_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut watchdog = fegrid_iec60870_cs104::watchdog::Watchdog::new(
+            std::time::Duration::from_millis(self.cfg.apci.t1_ms),
+            std::time::Duration::from_millis(self.cfg.apci.t2_ms),
+            std::time::Duration::from_millis(self.cfg.apci.t3_ms),
+        );
+        // Arm the T3 idle counter immediately so TESTFR fires after t3 of idle.
+        watchdog.note_recv(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default(),
+        );
         loop {
             tokio::select! {
                 _ = drain_tick.tick() => {
                     while let Some(queued) = queue.pop() {
+                        let queued_clone = queued.clone();
                         match session.send_i(queued) {
                             Ok(bytes) => {
                                 if let Some(raw) = &raw {
@@ -465,7 +501,39 @@ impl Server {
                                 }
                                 framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
                             }
+                            Err(fegrid_iec60870_cs104::typestate::SessionError::Protocol(_)) => {
+                                queue.push_front(queued_clone);
+                                break;
+                            }
                             Err(e) => return Err(Session104Error::Protocol(e)),
+                        }
+                    }
+                    // Watchdog tick.
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default();
+                    let unacked = session.seq().unacked_count();
+                    let unacked_recv = session.unacked_recv_count();
+                    let action = watchdog.tick(now, unacked, self.cfg.apci.w, unacked_recv);
+                    match action {
+                        fegrid_iec60870_cs104::watchdog::WatchdogAction::None => {}
+                        fegrid_iec60870_cs104::watchdog::WatchdogAction::SendSFrame(_nr) => {
+                            let bytes = session.send_s();
+                            session.note_s_sent(session.seq().recv());
+                            if let Some(raw) = &raw {
+                                raw.on_raw(&bytes, true);
+                            }
+                            framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
+                        }
+                        fegrid_iec60870_cs104::watchdog::WatchdogAction::SendTestFrAct => {
+                            let bytes = fegrid_iec60870_cs104::u_frame_bytes(UFrame::TestFrAct);
+                            if let Some(raw) = &raw {
+                                raw.on_raw(&bytes, true);
+                            }
+                            framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
+                        }
+                        fegrid_iec60870_cs104::watchdog::WatchdogAction::Close { .. } => {
+                            return Ok(());
                         }
                     }
                 }
@@ -475,6 +543,11 @@ impl Server {
                         Ok(a) => a,
                         Err(e) => return Err(Session104Error::Codec(e)),
                     };
+                    watchdog.note_recv(
+                        std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default(),
+                    );
                     if let Some(raw) = &raw {
                         let bytes = crate::codec104::apdu_to_wire(&apdu);
                         raw.on_raw(&bytes, false);
@@ -486,6 +559,7 @@ impl Server {
                         ca_filter.as_ref(),
                         raw.as_ref(),
                         &queue,
+                        self.cfg.secure_auth_plugin.as_ref(),
                     )? {
                         framed.get_mut().write_all(&bytes).await.map_err(Session104Error::Io)?;
                     }
@@ -493,7 +567,6 @@ impl Server {
             }
         }
         // G-013: connection closed. Any ASDUs still queued (because
-        // the I-frame carrying them was not yet ACKed) move to the
         // waiting-for-transmission pool so the next peer's serve
         // loop can deliver them.
         let moved = queue.mark_waiting_for_transmission();
@@ -514,6 +587,7 @@ impl Server {
     /// focused on multiplexing inbound frames with the periodic
     /// outbound drain. `session` is owned exclusively by this
     /// per-connection task; the other parameters are cheap clones.
+    #[allow(clippy::too_many_arguments)]
     fn dispatch_apdu(
         &self,
         apdu: Apdu,
@@ -522,6 +596,7 @@ impl Server {
         ca_filter: &dyn IsCaAllowed,
         raw: Option<&Arc<dyn RawMessageHandler>>,
         queue: &Arc<AsduQueue>,
+        secure_auth_plugin: Option<&Arc<fegrid_iec60870_secauth::SecureAuthPlugin>>,
     ) -> Result<Vec<Vec<u8>>, Session104Error> {
         let mut out: Vec<Vec<u8>> = Vec::new();
         let raw_obj: Option<&dyn RawMessageHandler> = raw.map(|a| a.as_ref());
@@ -553,22 +628,27 @@ impl Server {
             }
             return Ok(out);
         };
-        if !ca_filter.permits(asdu.common_address.0) {
-            // G-047: CA not allowed. Emit ACTIVATION_CON with
-            // COT_UNKNOWN_CA + negative P/N bit. Suppressed for
-            // monitor-direction (master is asking for data, not
-            // commanding). See IEC TS 60870-5-604 §7.2.
-            if is_control_direction(&asdu) {
-                let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
-                    &asdu,
-                    fegrid_iec60870_core::CauseOfTransmission::UnknownCa,
-                );
-                if let Ok(bytes) = session.send_i(reject) {
-                    if let Some(r) = raw_obj {
-                        r.on_raw(&bytes, true);
-                    }
-                    out.push(bytes.to_vec());
+        // G-047: CA filter applies only to CONTROL-direction commands
+        // (master commanding the slave). Monitor-direction commands
+        // (master requesting data) are accepted with any CA, per IEC
+        // TS 60870-5-604 §7.2. GI (C_IC_NA_1) is excluded because
+        // semantically it requests data even though its COT is
+        // `Activation`. When the CA is not allowed AND the command
+        // is a true control command, emit ACTIVATION_CON with
+        // COT_UNKNOWN_CA + negative P/N bit. Otherwise fall through.
+        let blocked_by_ca = !ca_filter.permits(asdu.common_address.0)
+            && is_control_direction(&asdu)
+            && asdu.type_id != fegrid_iec60870_core::TypeId::C_IC_NA_1;
+        if blocked_by_ca {
+            let reject = fegrid_iec60870_asdu::activation_confirm_with_cause(
+                &asdu,
+                fegrid_iec60870_core::CauseOfTransmission::UnknownCa,
+            );
+            if let Ok(bytes) = session.send_i(reject) {
+                if let Some(r) = raw_obj {
+                    r.on_raw(&bytes, true);
                 }
+                out.push(bytes.to_vec());
             }
             return Ok(out);
         }
@@ -578,6 +658,7 @@ impl Server {
         // C_RP_NA_1, C_CD_NA_1) carry a reserved IOA=0 field and
         // are exempted so the server accepts IOA=0 on standard commands.
         if is_control_direction(&asdu)
+            && asdu.type_id != fegrid_iec60870_core::TypeId::C_ACSE_NA_3
             && !is_standard_command_with_reserved_ioa_zero(&asdu)
             && asdu.objects.iter().any(|o| o.ioa == 0)
         {
@@ -593,29 +674,151 @@ impl Server {
             }
             return Ok(out);
         }
-        if let Some(con) = handlers.dispatch(&asdu) {
-            let bytes = session.send_i(con).map_err(Session104Error::Protocol)?;
-            if let Some(r) = raw_obj {
-                r.on_raw(&bytes, true);
+        // Inline-send an ACT_CON. On k-window-full stash at the front
+        // of the queue so the next outbound drain arm retries.
+        let mut send_act_con = |con: Asdu, out: &mut Vec<Vec<u8>>| {
+            let con_clone = con.clone();
+            match session.send_i(con) {
+                Ok(bytes) => {
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+                Err(fegrid_iec60870_cs104::typestate::SessionError::Protocol(_)) => {
+                    queue.push_front(con_clone);
+                }
+                Err(e) => return Err(Session104Error::Protocol(e)),
             }
-            out.push(bytes.to_vec());
+            Ok(())
+        };
+        // IEC 60870-5-7 §6.3 secure-authentication dispatch (COT
+        // 14/15/16 on type id C_ACSE_NA_3 = 135). Route through
+        // `SecureAuthPlugin::sign`, build an ACT_CON positive with
+        // the challenge echoed and the HMAC-SHA256-4 response
+        // populated, status bit 0x80 in the CA-field high byte.
+        // Falls through to negative ACT_CON (status 0xC0) when no
+        // plugin is configured or the type id is wrong.
+        let is_secure_auth = matches!(
+            asdu.cot.cause,
+            fegrid_iec60870_core::CauseOfTransmission::Authentication
+                | fegrid_iec60870_core::CauseOfTransmission::MaintenanceOfAuthSessionKey
+                | fegrid_iec60870_core::CauseOfTransmission::MaintenanceOfUserRoleAndUpdateKey
+        ) && asdu.type_id == fegrid_iec60870_core::TypeId::C_ACSE_NA_3;
+        if is_secure_auth {
+            // Sign challenge via the plugin (or fall through to negative ACK).
+            let plugin_response: Option<([u8; 4], [u8; 32])> = (|| {
+                let plugin = secure_auth_plugin?;
+                let obj = asdu.objects.first()?;
+                let fegrid_iec60870_asdu::InformationValue::AcseActivation { challenge, .. } =
+                    &obj.value
+                else {
+                    return None;
+                };
+                let sig = plugin.sign(challenge).ok()?;
+                let resp: [u8; 4] = sig.get(..4)?.try_into().ok()?;
+                Some((resp, *challenge))
+            })();
+            let mut con = fegrid_iec60870_asdu::activation_confirm(&asdu);
+            match plugin_response {
+                Some((response, challenge)) => {
+                    // Positive: CA high byte = 0x80 (OK), response
+                    // populated, challenge echoed back.
+                    con.common_address.0 = (con.common_address.0 & 0x00FF) | 0x8000;
+                    if let Some(obj) = con.objects.first_mut() {
+                        obj.value = fegrid_iec60870_asdu::InformationValue::AcseActivation {
+                            challenge,
+                            response,
+                            role: 0,
+                            status: 0x80,
+                        };
+                    }
+                }
+                None => {
+                    // Negative: CA high byte = 0xC0.
+                    con.common_address.0 = (con.common_address.0 & 0x00FF) | 0xC000;
+                    con.cot.negative_confirm = true;
+                    if let Some(obj) = con.objects.first_mut()
+                        && let fegrid_iec60870_asdu::InformationValue::AcseActivation {
+                            challenge,
+                            ..
+                        } = &obj.value
+                    {
+                        let ch = *challenge;
+                        obj.value = fegrid_iec60870_asdu::InformationValue::AcseActivation {
+                            challenge: ch,
+                            response: [0u8; 4],
+                            role: 0,
+                            status: 0xC0,
+                        };
+                    }
+                }
+            }
+            send_act_con(con, &mut out)?;
+            return Ok(out);
         }
-        // Also drain queued ASDUs if any.
-        while let Some(queued) = queue.pop() {
-            let bytes = session.send_i(queued).map_err(Session104Error::Protocol)?;
-            if let Some(r) = raw_obj {
-                r.on_raw(&bytes, true);
+
+        // qpa bit 7 = 1 means read-only preview (preview of the
+        // currently-loaded parameter). The controlled station shall
+        // reply with ACT_CON positive without invoking the activate
+        // handler. qpa bit 7 = 0 means "activate previously loaded
+        // parameter" — the activate handler MUST run.
+        let qpa_read_only = asdu.type_id == fegrid_iec60870_core::TypeId::P_AC_NA_1
+            && asdu.objects.first().is_some_and(|o| {
+                matches!(
+                    o.value,
+                    fegrid_iec60870_asdu::InformationValue::ParameterActivation { qpm }
+                        if qpm & 0x80 != 0
+                )
+            });
+
+        // Inline-send an ACT_CON. On k-window-full stash at the front
+        // of the queue so the next outbound drain arm retries.
+        let mut send_act_con = |con: Asdu, out: &mut Vec<Vec<u8>>| {
+            let con_clone = con.clone();
+            match session.send_i(con) {
+                Ok(bytes) => {
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+                Err(fegrid_iec60870_cs104::typestate::SessionError::Protocol(_)) => {
+                    queue.push_front(con_clone);
+                }
+                Err(e) => return Err(Session104Error::Protocol(e)),
             }
-            out.push(bytes.to_vec());
+            Ok(())
+        };
+
+        if qpa_read_only {
+            // Read-only P_AC_NA_1: emit positive ACT_CON without
+            // invoking any registered activate handler.
+            let con = fegrid_iec60870_asdu::activation_confirm(&asdu);
+            send_act_con(con, &mut out)?;
+        } else if let Some(con) = handlers.dispatch(&asdu) {
+            send_act_con(con, &mut out)?;
+        }
+        // Drain queued ASDUs. On k-window-full, push the in-flight one back to the front and break.
+        while let Some(queued) = queue.pop() {
+            let queued_clone = queued.clone();
+            match session.send_i(queued) {
+                Ok(bytes) => {
+                    if let Some(r) = raw_obj {
+                        r.on_raw(&bytes, true);
+                    }
+                    out.push(bytes.to_vec());
+                }
+                Err(fegrid_iec60870_cs104::typestate::SessionError::Protocol(_)) => {
+                    queue.push_front(queued_clone);
+                    break;
+                }
+                Err(e) => return Err(Session104Error::Protocol(e)),
+            }
         }
         Ok(out)
     }
 }
-
-/// G-047: determine whether an ASDU is a control-direction command
-/// (master commanding the slave) vs monitor-direction (master
-/// requesting data). Used to decide whether negative-ACK paths
-/// apply — F-CONF-015 negative-path procedures only target commands.
 fn is_control_direction(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
     use fegrid_iec60870_core::CauseOfTransmission as Cot;
     matches!(
@@ -625,22 +828,9 @@ fn is_control_direction(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
             | Cot::ActivationCon
             | Cot::DeactivationCon
             | Cot::ActivationTermination
-    )
-}
-
-/// IEC 60870-5-101 §7.4 standard commands whose IOA field is reserved
-/// as zero. Skipping the IOA=0 validation for these keeps the server
-/// interoperable with peers that accept IOA=0 on GI/RI/clock-sync/read.
-fn is_standard_command_with_reserved_ioa_zero(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
-    use fegrid_iec60870_core::TypeId;
-    matches!(
-        asdu.type_id,
-        TypeId::C_IC_NA_1
-            | TypeId::C_CI_NA_1
-            | TypeId::C_RD_NA_1
-            | TypeId::C_CS_NA_1
-            | TypeId::C_RP_NA_1
-            | TypeId::C_CD_NA_1
+            | Cot::Authentication
+            | Cot::MaintenanceOfAuthSessionKey
+            | Cot::MaintenanceOfUserRoleAndUpdateKey
     )
 }
 /// Builder for an `IsCaAllowed` filter from a static allow-list.
@@ -655,6 +845,21 @@ impl CaAllowList {
             inner: Arc::new(cas.into_iter().collect()),
         }
     }
+}
+/// IEC 60870-5-101 §7.4 standard commands whose IOA field is reserved
+/// as zero. Skipping the IOA=0 validation for these keeps the server
+/// interoperable with peers that accept IOA=0 on GI/RI/clock-sync/read.
+fn is_standard_command_with_reserved_ioa_zero(asdu: &fegrid_iec60870_asdu::Asdu) -> bool {
+    use fegrid_iec60870_core::TypeId;
+    matches!(
+        asdu.type_id,
+        TypeId::C_IC_NA_1
+            | TypeId::C_CI_NA_1
+            | TypeId::C_RD_NA_1
+            | TypeId::C_CS_NA_1
+            | TypeId::C_RP_NA_1
+            | TypeId::C_CD_NA_1
+    )
 }
 
 impl IsCaAllowed for CaAllowList {

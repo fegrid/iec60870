@@ -22,5 +22,5 @@ bytes = { workspace = true }
 [dev-dependencies]
 hex = { workspace = true }
 proptest = { workspace = true }
-arbitrary = { workspace = true }
 fegrid-iec60870-fixtures = { workspace = true }
+fegrid-iec60870-cs104 = { workspace = true }

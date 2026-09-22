@@ -296,6 +296,19 @@ impl Cs104Session<Started> {
     pub fn on_s_received(&mut self, nr: SeqNo) {
         self.seq.on_s_received(nr);
     }
+
+    /// How many I-frames the peer has sent that we have not yet
+    /// ACKed back via an S-frame. Used by the t2 watchdog.
+    pub fn unacked_recv_count(&self) -> u16 {
+        self.seq.unacked_recv_count()
+    }
+
+    /// Record that we emitted an S-frame acking `nr`. Updates the
+    /// recv-side ack counter so the t2 watchdog knows when the
+    /// peer has been caught up.
+    pub fn note_s_sent(&mut self, nr: SeqNo) {
+        self.seq.note_s_sent(nr);
+    }
 }
 
 impl Cs104Session<WaitingStopCon> {

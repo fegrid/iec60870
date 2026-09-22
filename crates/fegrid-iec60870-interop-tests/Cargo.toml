@@ -1,0 +1,18 @@
+[package]
+name = "fegrid-iec60870-interop-tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Static interop property tests."
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+fegrid-iec60870-core = { workspace = true }
+fegrid-iec60870-asdu = { workspace = true }
+fegrid-iec60870-conformance = { workspace = true }
+fegrid-iec60870-cs104 = { workspace = true }
+serde_json = { workspace = true }

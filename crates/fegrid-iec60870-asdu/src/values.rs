@@ -362,7 +362,23 @@ pub enum InformationValue {
         /// File creation time (CP56Time2a).
         creation_time: Cp56Time2a,
     },
-    /// Raw bytes for type-ids that aren't modelled with a typed variant.
+    /// IEC 60870-5-7 §6.3 Authentication challenge / response
+    /// (C_ACSE_NA_3, type id 135). Fixed 38-byte body:
+    /// challenge(32) + response(4) + role(1) + status(1).
+    AcseActivation {
+        /// 256-bit challenge issued by the authenticator.
+        challenge: [u8; 32],
+        /// Truncated HMAC-SHA256-4 response computed by the
+        /// challengee. All zeros on the initial ChallengeRequest;
+        /// populated by the ChallengeResponse.
+        response: [u8; 4],
+        /// User role per IEC 60870-5-7 §6.4. 0 = default.
+        role: u8,
+        /// Status octet: bit 7 = OK, bits 6-4 = algorithm
+        /// identifier (see `AuthAlgorithm::wire` in
+        /// `fegrid_iec60870_secauth`), bits 3-0 reserved.
+        status: u8,
+    },
     /// Round-trips verbatim; never decoded to typed data. Timestamps are
     /// not part of this blob — see [`crate::object::InformationObject`].
     Raw {

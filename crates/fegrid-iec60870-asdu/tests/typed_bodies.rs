@@ -390,3 +390,19 @@ fn f_dr_ta_1_round_trip_with_cp56() {
     };
     strict_round_trip(TypeId::F_DR_TA_1, 1, vec![(0x0F0000, val, None)]);
 }
+
+#[test]
+fn c_acse_na_3_challenge_decodes_to_typed_variant() {
+    // C_ACSE_NA_3 body: challenge(32) + response(4) + role(1) + status(1) = 38 bytes.
+    let challenge = [0x11u8; 32];
+    let response = [0x22u8; 4];
+    let role = 0u8;
+    let status = 0x80u8;
+    let val = InformationValue::AcseActivation {
+        challenge,
+        response,
+        role,
+        status,
+    };
+    strict_round_trip(TypeId::C_ACSE_NA_3, 1, vec![(0, val, None)]);
+}

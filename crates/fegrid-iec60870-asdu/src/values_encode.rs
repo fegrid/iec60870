@@ -65,6 +65,7 @@ impl InformationValue {
                 4 + data.len()
             }
             InformationValue::FileDirectory { .. } => 13,
+            InformationValue::AcseActivation { .. } => 38,
             _ => body_only_len(self.type_byte()),
         }
     }
@@ -112,6 +113,7 @@ impl InformationValue {
             FileAck { .. } => 124,
             FileSegment { .. } => 125,
             FileDirectory { .. } => 126,
+            AcseActivation { .. } => 135,
         }
     }
 
@@ -347,6 +349,17 @@ impl InformationValue {
                     .encode(&mut ts)
                     .map_err(|_| AsduError::BufferTooShort { need: 7, have: 0 })?;
                 out[6..13].copy_from_slice(&ts);
+            }
+            AcseActivation {
+                challenge,
+                response,
+                role,
+                status,
+            } => {
+                out[..32].copy_from_slice(challenge);
+                out[32..36].copy_from_slice(response);
+                out[36] = *role;
+                out[37] = *status;
             }
             Raw { bytes, .. } => {
                 out[..bytes.len()].copy_from_slice(bytes);
@@ -598,7 +611,23 @@ impl InformationValue {
                 sof: input[5],
                 creation_time: Cp56Time2a::decode(&input[6..13])?,
             },
-            // Anything else: round-trip as Raw so we never lose bytes.
+            // C_ACSE_NA_3 (135): challenge(32) + response(4) + role(1) + status(1) = 38.
+            135 if input.len() >= 38 => AcseActivation {
+                challenge: <[u8; 32]>::try_from(&input[0..32]).map_err(|_| {
+                    AsduError::BufferTooShort {
+                        need: 38,
+                        have: input.len(),
+                    }
+                })?,
+                response: <[u8; 4]>::try_from(&input[32..36]).map_err(|_| {
+                    AsduError::BufferTooShort {
+                        need: 38,
+                        have: input.len(),
+                    }
+                })?,
+                role: input[36],
+                status: input[37],
+            },
             _ => Raw {
                 type_id,
                 bytes: input[..body_only].to_vec(),

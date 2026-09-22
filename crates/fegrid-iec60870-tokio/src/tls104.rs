@@ -180,12 +180,19 @@ impl TlsServerConfig {
 
 /// Client-side TLS settings: trust anchors + optional CRLs (G-044) +
 /// ALPN + cipher policy (G-044).
-#[derive(Debug)]
 pub struct TlsClientConfig {
     trust: TlsTrustRoots,
     crls: Vec<rustls::pki_types::CertificateRevocationListDer<'static>>,
     alpn_protocols: Vec<Vec<u8>>,
     min_protocol_version: rustls::ProtocolVersion,
+    /// Optional mTLS client identity (cert + key). When set, the
+    /// rustls `ClientConfig` is built with
+    /// `with_client_auth_cert` instead of `with_no_client_auth`. The
+    /// C reference `tls_server` example enables
+    /// `MBEDTLS_SSL_VERIFY_REQUIRED` so a client cert is mandatory;
+    /// without this builder the cross-cell TLS test cannot complete
+    /// the handshake against the C reference.
+    identity: Option<TlsIdentity>,
 }
 
 impl TlsClientConfig {
@@ -196,10 +203,24 @@ impl TlsClientConfig {
             crls: Vec::new(),
             alpn_protocols: Vec::new(),
             min_protocol_version: rustls::ProtocolVersion::TLSv1_2,
+            identity: None,
         }
     }
-    /// Set the ALPN protocols offered during the handshake (G-044).
+    /// Set the mTLS client identity (cert chain + private key). When
+    /// set, the rustls `ClientConfig` enables client-cert
+    /// authentication. Required by the C reference `tls_server` example
+    /// when its mbedTLS context is built with
+    /// `MBEDTLS_SSL_VERIFY_REQUIRED`.
     #[must_use]
+    pub fn with_client_identity(mut self, identity: TlsIdentity) -> Self {
+        self.identity = Some(identity);
+        self
+    }
+    /// Borrow the configured client identity (if any).
+    pub fn client_identity(&self) -> Option<&TlsIdentity> {
+        self.identity.as_ref()
+    }
+    /// Set the ALPN protocols offered during the handshake (G-044).
     pub fn with_alpn_protocols(mut self, protocols: Vec<Vec<u8>>) -> Self {
         self.alpn_protocols = protocols;
         self
@@ -408,9 +429,24 @@ impl Tls104Connector {
     pub fn new(cfg: &TlsClientConfig, server_name: &str) -> Result<Self, TlsError> {
         ensure_provider();
 
-        let client_cfg = rustls::ClientConfig::builder()
-            .with_root_certificates(cfg.trust.0.clone())
-            .with_no_client_auth();
+        let mut builder =
+            rustls::ClientConfig::builder().with_root_certificates(cfg.trust.0.clone());
+        // If a client identity was supplied via
+        // `TlsClientConfig::with_client_identity`, enable mTLS by
+        // swapping `with_no_client_auth()` for
+        // `with_client_auth_cert()`. Without this, the C reference's
+        // `tls_server` (configured with
+        // `MBEDTLS_SSL_VERIFY_REQUIRED`) closes the handshake before
+        // any CS 104 APDU can flow.
+        let client_cfg = if let Some(identity) = cfg.identity.as_ref() {
+            let chain = identity.cert_chain().to_vec();
+            let key = identity.key().clone_key();
+            builder
+                .with_client_auth_cert(chain, key)
+                .map_err(TlsError::Tls)?
+        } else {
+            builder.with_no_client_auth()
+        };
         let name = ServerName::try_from(server_name.to_owned())
             .map_err(|_| TlsError::Pem("invalid server name".to_owned()))?
             .to_owned();
@@ -419,9 +455,9 @@ impl Tls104Connector {
             name,
         })
     }
-
-    /// Open a TCP connection to `addr`, perform the TLS handshake, and
-    /// frame the stream for CS 104.
+    /// Open a TLS-wrapped CS 104 connection to `addr`. Performs the
+    /// TLS handshake using the configured trust roots and (optionally)
+    /// client identity, then returns the framed APDU stream.
     pub async fn connect<A>(&self, addr: A) -> Result<Tls104Stream, TlsError>
     where
         A: ToSocketAddrs,

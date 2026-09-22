@@ -4,15 +4,27 @@
 //! Application-layer authentication service (C_ACSE_NA_3 type id 135).
 //!
 //! This crate provides a transport-agnostic key-management interface
-//! and a `SecureAuthPlugin` adapter that implements the umbrella
-//! `Plugin` trait. Concrete cryptographic
-//! operations are delegated to user-provided [`KeyProvider`] +
-//! [`ChallengeHandler`] impls — the runtime does NOT assume any
-//! particular algorithm (GMac, RSA, ECDSA, etc).
+//! and a `SecureAuthPlugin` adapter that owns the [`KeyProvider`] +
+//! [`ChallengeHandler`] + [`crate::session::SecureSession`] state
+//! machine. Concrete cryptographic operations are delegated to
+//! user-provided impls — the runtime does NOT assume any particular
+//! algorithm (GMac, RSA, ECDSA, etc).
+//!
+//! ## Runtime dispatch
+//!
+//! `SecureAuthPlugin` is consumed directly by the CS 104 server
+//! runtime via `ServerConfig::secure_auth_plugin` (see
+//! `crates/fegrid-iec60870-tokio/src/server.rs`). The server
+//! routes COT 14/15/16 frames of type C_ACSE_NA_3 through
+//! `plugin.sign(...)` and emits ACT_CON positive (CA-field
+//! high byte = 0x80) or negative (0xC0). The umbrella crate's
+//! `Plugin` trait is shape-mismatched for this use case and is
+//! not invoked from the server runtime.
+
+pub mod session;
 
 use std::sync::Arc;
 
-/// Asymmetric-algorithm identifier (placeholder; reserved).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum AuthAlgorithm {
@@ -174,15 +186,15 @@ impl SecureAuthPlugin {
     }
 }
 
-// impl Plugin for SecureAuthPlugin is provided by the umbrella crate
-// when it wires the trait together. This module exposes only the
-// transport-agnostic primitives.
+pub use session::{
+    CHALLENGE_LEN, ChallengeStatus, KeyChangePhase, RESPONSE_LEN, SESSION_KEY_LEN, SecureSession,
+    SessionError, SessionKey, SessionState,
+};
 
-#[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
-
+    #[allow(dead_code)]
     struct StubProvider {
         algo: AuthAlgorithm,
         #[allow(dead_code)]

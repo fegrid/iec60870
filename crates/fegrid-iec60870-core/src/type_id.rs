@@ -159,6 +159,12 @@ pub enum TypeId {
     F_SG_NA_1 = 125,
     /// Directory.
     F_DR_TA_1 = 126,
+
+    // --- secure authentication (135) ---
+    /// IEC 60870-5-7 §6.3 Authentication challenge / response
+    /// (C_ACSE_NA_3). Body: challenge(32) + response(4) + role(1)
+    /// + status(1) = 38 bytes.
+    C_ACSE_NA_3 = 135,
 }
 
 impl TypeId {
@@ -232,6 +238,7 @@ impl TypeId {
             124 => Self::F_AF_NA_1,
             125 => Self::F_SG_NA_1,
             126 => Self::F_DR_TA_1,
+            135 => Self::C_ACSE_NA_3,
             _ => Self::Undefined,
         }
     }
@@ -315,6 +322,7 @@ impl TypeId {
             F_AF_NA_1 => 4,
             F_SG_NA_1 => 0,
             F_DR_TA_1 => 0,
+            C_ACSE_NA_3 => 38,
             Undefined => 0,
         }
     }

@@ -27,6 +27,7 @@ path = "tests/session104_loopback.rs"
 [dependencies]
 fegrid-iec60870-core = { workspace = true }
 fegrid-iec60870-asdu = { workspace = true }
+fegrid-iec60870-secauth = { workspace = true }
 fegrid-iec60870-cs101 = { workspace = true }
 fegrid-iec60870-cs104 = { workspace = true }
 tokio = { workspace = true }
