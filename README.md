@@ -50,13 +50,8 @@ cargo test --workspace --no-fail-fast
 - `fegrid-iec60870-tokio` — async driver over TCP, TLS, and serial.
 - `fegrid-iec60870-file` — IEC 60870-5 file-transfer service surface.
 - `fegrid-iec60870-secauth` — IEC 62351-5 secure-authentication scaffolding.
-- `fegrid-iec60870-conformance` — PICS XML + 30-item F-CONF-* report.
 - `fegrid-iec60870-fixtures` — canonical corpus of captured IEC 60870 traffic.
 - `fegrid-iec60870` — umbrella crate re-exporting the above.
-
-## Conformance
-
-The `fegrid-iec60870-conformance` crate exercises the ASDU codec, the CS 101 FT 1.2 link FSM, the CS 104 APCI typestate engine, and the secure-auth surface against captured IEC 60870 traffic.
 
 ## License
 

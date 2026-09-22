@@ -25,7 +25,6 @@ body:
         - fegrid-iec60870-file
         - fegrid-iec60870-secauth
         - fegrid-iec60870-tokio
-        - fegrid-iec60870-conformance
         - fegrid-iec60870-fixtures
         - other / not sure
     validations:

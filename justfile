@@ -14,9 +14,6 @@ check:
 fuzz target:
     cd fuzz && cargo +nightly fuzz run {{target}}
 
-conformance-test:
-    cargo nextest run -p fegrid-iec60870-conformance
-
 # Line-coverage heatmap (HTML + lcov + summary). Requires cargo-llvm-cov.
 coverage:
     CARGO_TARGET_DIR={{justfile_directory()}}/target \
