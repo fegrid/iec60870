@@ -11,6 +11,20 @@ check:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo nextest run --workspace
 
+# Publish the crate family to crates.io, in dependency order.
+# Needs `cargo login` (or CARGO_REGISTRY_TOKEN) first. `--dry-run` is not
+# useful here: cargo resolves inter-member deps against crates.io, so a
+# member can only be verified after its dependencies are published.
+publish:
+    cargo publish -p fegrid-iec60870-core
+    cargo publish -p fegrid-iec60870-asdu
+    cargo publish -p fegrid-iec60870-cs101
+    cargo publish -p fegrid-iec60870-cs104
+    cargo publish -p fegrid-iec60870-secauth
+    cargo publish -p fegrid-iec60870-file
+    cargo publish -p fegrid-iec60870-tokio
+    cargo publish -p fegrid-iec60870
+
 fuzz target:
     cd fuzz && cargo +nightly fuzz run {{target}}
 

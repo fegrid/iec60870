@@ -20,6 +20,8 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/fegrid/iec60870"
+readme = "README.md"
+keywords = ["iec60870", "scada", "protocol", "telecontrol", "substation"]
 
 [workspace.dependencies]
 fegrid-iec60870-core = { path = "crates/fegrid-iec60870-core", version = "0.1.0" }

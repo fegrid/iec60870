@@ -13,6 +13,8 @@
 //!   engine, watchdog, and raw-message handler.
 //! - `fegrid_iec60870_tokio` — async transport over tokio (TCP,
 //!   TLS, server runtime).
+//! - `fegrid_iec60870_file` — file-transfer service surface.
+//! - `fegrid_iec60870_secauth` — IEC 62351-5 secure authentication.
 
 #![allow(missing_docs)]
 
@@ -22,6 +24,12 @@ pub use fegrid_iec60870_asdu as asdu;
 pub use fegrid_iec60870_core as core;
 pub use fegrid_iec60870_cs101 as cs101;
 pub use fegrid_iec60870_cs104 as cs104;
+
+#[cfg(feature = "file")]
+pub use fegrid_iec60870_file as file;
+
+#[cfg(feature = "secauth")]
+pub use fegrid_iec60870_secauth as secauth;
 
 #[cfg(feature = "tokio")]
 pub use fegrid_iec60870_tokio as tokio;

@@ -1,9 +1,17 @@
 [package]
 name = "fegrid-iec60870"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["network-programming"]
 description = "Pure IEC 60870-5 (IEC 870) implementation in Rust - typed ASDU codec, sans-IO master/outstation, CS 101/104 framing, APCI engine, file-transfer service, IEC 62351-5 secure-auth. Umbrella re-export with optional tokio driver."
+
+[lints]
+workspace = true
 
 [dependencies]
 fegrid-iec60870-core = { workspace = true }
@@ -11,7 +19,14 @@ fegrid-iec60870-asdu = { workspace = true }
 fegrid-iec60870-cs101 = { workspace = true }
 fegrid-iec60870-cs104 = { workspace = true }
 fegrid-iec60870-tokio = { workspace = true, optional = true }
+fegrid-iec60870-file = { workspace = true, optional = true }
+fegrid-iec60870-secauth = { workspace = true, optional = true }
 
 [features]
 default = []
+# Async driver + transports. `serial` / `tls` imply `tokio`.
 tokio = ["dep:fegrid-iec60870-tokio"]
+serial = ["tokio", "fegrid-iec60870-tokio/serial"]
+tls = ["tokio", "fegrid-iec60870-tokio/tls"]
+file = ["dep:fegrid-iec60870-file"]
+secauth = ["dep:fegrid-iec60870-secauth"]

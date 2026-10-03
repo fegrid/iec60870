@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["no-std", "encoding"]
 description = "Typed IEC 60870-5 ASDU codec"
 
 [lints]
@@ -22,5 +26,8 @@ bytes = { workspace = true }
 [dev-dependencies]
 hex = { workspace = true }
 proptest = { workspace = true }
-fegrid-iec60870-fixtures = { workspace = true }
-fegrid-iec60870-cs104 = { workspace = true }
+# Path-only on purpose: `cargo publish` strips dev-dependencies that carry no
+# version requirement. `fixtures` is `publish = false`, and the `cs104`
+# dev-dependency would otherwise form a publish cycle (cs104 depends on asdu).
+fegrid-iec60870-fixtures = { path = "../fegrid-iec60870-fixtures" }
+fegrid-iec60870-cs104 = { path = "../fegrid-iec60870-cs104" }

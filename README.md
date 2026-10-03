@@ -11,14 +11,19 @@ The stack targets IEC 60870-5-101 (FT 1.2 serial) and IEC 60870-5-104 (TCP / TLS
 fegrid-iec60870 = { version = "0.1", features = ["tokio"] }
 ```
 
-Default features are `tokio`. Additional transports and tooling are gated behind feature flags:
+Default features are empty. Enable `tokio` for the async driver; additional transports and tooling are gated behind feature flags:
 
-- `serial` — FT 1.2 serial port transport
-- `tls` — TLS over TCP (CS 104)
+- `tokio` — async driver over TCP
+- `serial` — FT 1.2 serial port transport (implies `tokio`)
+- `tls` — TLS over TCP (CS 104, implies `tokio`)
 - `file` — IEC 60870-5 file-transfer service
 - `secauth` — IEC 62351-5 secure-authentication scaffolding
 
+The sans-IO codec crates (`core`, `asdu`, `cs101`, `cs104`) are always available; the `file` and `secauth` re-exports appear as `fegrid_iec60870::file` / `fegrid_iec60870::secauth` when enabled.
+
 ## Build
+
+Requires Rust 1.88 or newer (2024 edition).
 
 ```sh
 cargo build --workspace
@@ -50,7 +55,7 @@ cargo test --workspace --no-fail-fast
 - `fegrid-iec60870-tokio` — async driver over TCP, TLS, and serial.
 - `fegrid-iec60870-file` — IEC 60870-5 file-transfer service surface.
 - `fegrid-iec60870-secauth` — IEC 62351-5 secure-authentication scaffolding.
-- `fegrid-iec60870-fixtures` — canonical corpus of captured IEC 60870 traffic.
+- `fegrid-iec60870-fixtures` — canonical corpus of captured IEC 60870 traffic (internal, `publish = false`).
 - `fegrid-iec60870` — umbrella crate re-exporting the above.
 
 ## License

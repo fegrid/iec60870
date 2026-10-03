@@ -1,4 +1,4 @@
-# cargo-deny policy for the fegrid-dnp3 workspace.
+# cargo-deny policy for the fegrid-iec60870 workspace.
 # Structural guard against reintroducing private git deps; we use crates.io only.
 
 [graph]

@@ -1,9 +1,17 @@
 [package]
 name = "fegrid-iec60870-file"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["network-programming"]
 description = "File-transfer service layer (F_FR_NA_1 + F_SG_NA_1 + F_DR_TA_1) for IEC 60870-5."
+
+[lints]
+workspace = true
 
 [dependencies]
 fegrid-iec60870-core = { workspace = true }
