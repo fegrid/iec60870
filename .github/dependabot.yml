@@ -7,8 +7,11 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "UTC"
-    labels:
-      - "dependencies"
+    # No `labels:` block on purpose. Specifying labels *replaces* Dependabot's
+    # defaults, and this repo has no `dependencies` label; Dependabot only
+    # auto-creates its default labels when the key is omitted. Omitting it
+    # yields `dependencies` + the ecosystem label (`cargo` /
+    # `github-actions`), created as needed.
     # Cargo workspace: every dep is reachable from the root lockfile, so
     # monitor only at the workspace root.
     open-pull-requests-limit: 10
@@ -28,8 +31,11 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "UTC"
-    labels:
-      - "dependencies"
+    # No `labels:` block on purpose. Specifying labels *replaces* Dependabot's
+    # defaults, and this repo has no `dependencies` label; Dependabot only
+    # auto-creates its default labels when the key is omitted. Omitting it
+    # yields `dependencies` + the ecosystem label (`cargo` /
+    # `github-actions`), created as needed.
     # The release and CI workflows pin action SHAs. Dependabot will open
     # PRs to bump the SHA and the version tag in lockstep; reviewers must
     # confirm the SHA matches the new tag before merging.
