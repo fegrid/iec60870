@@ -940,7 +940,7 @@ async fn parameter_load_then_activate_dispatches_both_handlers() {
     drop(peer);
 }
 
-/// IEC 60870-5-101 §7.4.5.4 / IEC TS 60870-5-604 §7.4: P_AC_NA_1
+/// IEC 60870-5-101 §7.3.5.4 / IEC TS 60870-5-604 §7.4: P_AC_NA_1
 /// with qpa bit 7 = 0 means "activate the previously loaded
 /// parameter". The activate handler MUST run, and the server
 /// replies with ACTIVATION_CON positive.
@@ -988,7 +988,7 @@ async fn parameter_activate_qpa_zero_invokes_activate_handler() {
     drop(peer);
 }
 
-/// IEC 60870-5-101 §7.4.5.4: P_AC_NA_1 with qpa bit 7 = 1 is a
+/// IEC 60870-5-101 §7.3.5.4: P_AC_NA_1 with qpa bit 7 = 1 is a
 /// read-only preview — the controlled station shall reply with
 /// ACTIVATION_CON positive WITHOUT invoking the activate handler.
 /// This test pins the qpa-aware dispatch on the live CS 104
@@ -1044,7 +1044,7 @@ async fn parameter_activate_qpa_read_only_does_not_invoke_activate_handler() {
 // F_DR_TA_1 (file directory) — server-runtime round-trip
 // ===========================================================================
 
-/// IEC 60870-5-101 §7.4.8.13 F_DR_TA_1 file directory body is
+/// IEC 60870-5-101 §7.3.6.7 F_DR_TA_1 file directory body is
 /// 13 bytes: NOF(2) + LOF(3) + SOF(1) + CP56Time2a(7). This test
 /// exercises the full server-runtime decode → process → re-encode
 /// path: the encoder in `fegrid-iec60870-asdu` already emits the

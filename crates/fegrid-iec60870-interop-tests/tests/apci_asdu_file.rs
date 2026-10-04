@@ -2032,7 +2032,7 @@ fn ft_out_of_order_section_numbers_rejected() {
 }
 
 /// File selection cancellation (F_SC_NA_1 with scq=0x03 per IEC
-/// 60870-5-101 §7.3.1.122 §4.5) is rejected by the current receiver:
+/// 60870-5-101 §7.3.6.3) is rejected by the current receiver:
 /// the first FileCall MUST carry scq=0x01 (select). Any other qualifier
 /// at select time is a protocol violation.
 ///

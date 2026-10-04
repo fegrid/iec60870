@@ -48,7 +48,7 @@ impl ApciParameters {
     /// * `k == 0` — zero-window; no I-frame can ever be sent.
     /// * `w == 0` — never ack; the t2 watchdog's flush path runs
     ///   forever without progress.
-    /// * `k < w` — IEC 60870-5-104 §6 requires the unacknowledged
+    /// * `k < w` — IEC 60870-5-104 §5.5 requires the unacknowledged
     ///   window to be at least as large as the S-frame ack threshold.
     /// * `k > MAX_K` — wider than the 15-bit sequence-number mod
     ///   space; impossible to encode on the wire.
@@ -60,7 +60,7 @@ impl ApciParameters {
             return Err("w must be ≥ 1");
         }
         if self.k < self.w {
-            return Err("k must be ≥ w (IEC 60870-5-104 §6)");
+            return Err("k must be ≥ w (IEC 60870-5-104 §5.5)");
         }
         if self.k > MAX_K || self.w > MAX_W {
             return Err("k and w must fit in the 15-bit sequence mod space (≤ 32767)");

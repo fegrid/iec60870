@@ -25,7 +25,7 @@ use fegrid_iec60870_cs104::typestate::SessionError;
 
 use crate::codec104::{ApduCodec, CodecError};
 
-/// Default IEC 60870-5-104 TCP port (IEC 60870-5-104 §5).
+/// Default IEC 60870-5-104 TCP port (IEC 60870-5-104 §5.4).
 pub const IEC104_DEFAULT_PORT: u16 = 2404;
 
 /// Connection lifecycle events.

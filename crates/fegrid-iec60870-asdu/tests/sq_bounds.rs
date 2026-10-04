@@ -87,7 +87,7 @@ fn sq_asdu_missing_last_body_is_rejected() {
     );
 }
 
-/// VSQ count=0 with SQ=1 is a valid edge case (IEC 60870-5-101 §7.2.4):
+/// VSQ count=0 with SQ=1 is a valid edge case (IEC 60870-5-101 §7.2.2):
 /// zero objects, no IOA bytes. Should parse cleanly.
 #[test]
 fn sq_asdu_with_zero_count_parses() {

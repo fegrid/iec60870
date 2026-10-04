@@ -1,6 +1,6 @@
 //! APCI frame codec (I, S, U).
 //!
-//! Wire layout per IEC 60870-5-104 §6:
+//! Wire layout per IEC 60870-5-104 §5:
 //! - All APDUs start with `0x68 <len-2> 0x68 ...` (the leading two bytes are
 //!   the start octet + length; `len` counts every byte after the length,
 //!   i.e. the full APDU = `len + 2` bytes total).

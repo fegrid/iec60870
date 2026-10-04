@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn apci_k_must_be_at_least_w() {
-        // IEC 60870-5-104 §6: k ≥ w (the window must hold at least
+        // IEC 60870-5-104 §5.5: k ≥ w (the window must hold at least
         // the unconfirmed-I batch). Validate enforces the invariant.
         use crate::params::ApciParameters;
         let bad = ApciParameters {

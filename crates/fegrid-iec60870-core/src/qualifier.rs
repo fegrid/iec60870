@@ -8,7 +8,7 @@
 
 /// Qualifier of interrogation (`C_IC_NA_1`, QOI).
 ///
-/// Standard values from IEC 60870-5-101 §7.3.1.100.
+/// Standard values from IEC 60870-5-101 §7.2.6.22.
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct QualifierOfInterrogation(pub u8);
@@ -55,7 +55,7 @@ impl core::fmt::Display for QualifierOfInterrogation {
 
 /// Qualifier of counter-interrogation command (`C_CI_NA_1`, QCC).
 ///
-/// Standard values from IEC 60870-5-101 §7.3.1.101.
+/// Standard values from IEC 60870-5-101 §7.2.6.23.
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct QualifierOfCIC(pub u8);
