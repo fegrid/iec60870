@@ -41,6 +41,14 @@ cargo build --workspace --features "tokio serial tls file secauth"
 cargo test --workspace --no-fail-fast
 ```
 
+## Spec traceability
+
+Some tests are named `spec_<doc>_<clause>_<nn>_<slug>` (for example
+`spec_104_5_4_01_default_tcp_port_is_2404`): they bind to a requirement record
+for the named clause of an IEC 60870-5 document. The records, the clause index
+and the checker live in a **separate repository** — they quote licensed
+document text, so they are deliberately not part of this one.
+
 ## Crates
 
 ### Sans-IO core (no_std-friendly)
