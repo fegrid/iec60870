@@ -68,3 +68,46 @@ impl ApciParameters {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spec_104_5_5_01_k_within_modulus_bound() {
+        // 104 §5.5: k shall never exceed n − 1 for modulo n operation. The
+        // 15-bit CS104 sequence modulus caps k at 32767.
+        assert_eq!(MAX_K, 32767);
+        let at_bound = ApciParameters {
+            k: MAX_K,
+            w: 8,
+            ..Default::default()
+        };
+        assert!(at_bound.validate().is_ok(), "k == n-1 must validate");
+        let above = ApciParameters {
+            k: MAX_K + 1,
+            w: 8,
+            ..Default::default()
+        };
+        assert!(above.validate().is_err(), "k above n-1 must be rejected");
+    }
+
+    #[test]
+    fn spec_104_5_5_02_w_within_two_thirds_of_k() {
+        // 104 §5.5 recommends w ≤ two-thirds of k; the default parameter set
+        // sits exactly on that recommendation.
+        let default = ApciParameters::default();
+        assert_eq!(default.k, 12);
+        assert_eq!(default.w, 8);
+        assert!(default.w <= default.k * 2 / 3);
+        // Validation only requires k >= w, so a w above the recommendation is
+        // accepted (see the `note` on record 104-5.5-02).
+        let above = ApciParameters {
+            k: 12,
+            w: 12,
+            ..Default::default()
+        };
+        assert!(above.validate().is_ok());
+        assert!(above.w > above.k * 2 / 3);
+    }
+}

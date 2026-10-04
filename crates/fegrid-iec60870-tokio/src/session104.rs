@@ -245,3 +245,15 @@ where
 /// Default STOPDT deadline in milliseconds. Matches the `t1` timer in
 /// the C reference.
 pub const STOPDT_DEFAULT_DEADLINE_MS: u64 = 15_000;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spec_104_5_4_01_default_tcp_port_is_2404() {
+        // 104 §5.4: the standard port number for IEC 60870-5-104 is 2404,
+        // confirmed by IANA.
+        assert_eq!(IEC104_DEFAULT_PORT, 2404);
+    }
+}
