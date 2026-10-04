@@ -38,7 +38,7 @@ fn short_sq_asdu_is_rejected_by_lenient_parse() {
 /// 1-byte info element per element (M_SP_NA_1 body length). Parses and
 /// yields 2 objects with sequential IOAs.
 #[test]
-fn sq_asdu_with_minimal_valid_payload_parses() {
+fn spec_101_7_2_2_01_vsq_sq_and_count() {
     let header_len = 1 + 1 + 2 + 2;
     let ioa = 3;
     let body = 1;

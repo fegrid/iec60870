@@ -432,7 +432,7 @@ mod tests {
     }
 
     #[test]
-    fn variable_round_trip() {
+    fn spec_101_6_1_01_ft12_frame_format() {
         let p = params(AddressLen::Two);
         let original = VariableFrame {
             // secondary RESP_USER_DATA (PRM=0, FC=8)

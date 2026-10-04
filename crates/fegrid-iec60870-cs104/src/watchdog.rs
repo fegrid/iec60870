@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn t1_closes_on_unacked() {
+    fn spec_104_5_3_01_t1_is_sent_frame_timeout() {
         let mut wd = Watchdog::new(ms(100), ms(50), ms(200));
         wd.note_sent(ms(0));
         let action = wd.tick(ms(150), 1, 8, 0);

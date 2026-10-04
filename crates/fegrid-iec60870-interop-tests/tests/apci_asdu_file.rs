@@ -34,7 +34,7 @@ use fegrid_iec60870_cs104::{
 // =====================================================================
 
 #[test]
-fn apci_constants_sane() {
+fn spec_104_9_5_01_apdu_max_length_is_253() {
     let min = APDU_MIN_LENGTH;
     let max = APCI_MAX_LENGTH;
     assert!(min >= 4);

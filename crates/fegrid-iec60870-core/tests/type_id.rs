@@ -30,7 +30,7 @@ fn try_from_accepts_zero_as_undefined() {
 }
 
 #[test]
-fn to_wire_round_trips_every_known_id() {
+fn spec_101_7_2_1_01_type_identification_octet() {
     let known = [
         TypeId::M_SP_NA_1,
         TypeId::M_SP_TA_1,

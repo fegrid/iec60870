@@ -166,8 +166,10 @@ mod tests {
         assert!(s.on_i_received(SeqNo(32765)).is_err());
     }
 
+    /// IEC 60870-5-104 §5.1: both sequence numbers advance by one for each APDU
+    /// and each direction (requirement `104-5.1-01`).
     #[test]
-    fn next_send_increments_mod_32768() {
+    fn spec_104_5_1_01_seq_numbers_increment_per_apdu() {
         let mut s = SequenceState {
             send: SeqNo(32767),
             recv: SeqNo(0),

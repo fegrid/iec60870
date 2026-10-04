@@ -562,7 +562,7 @@ mod tests {
     }
 
     #[test]
-    fn classifies_process_data() {
+    fn spec_104_6_01_valid_asdu_set() {
         let asdu = build_asdu(
             TypeId::M_SP_NA_1,
             CauseOfTransmission::Spontaneous,

@@ -26,7 +26,9 @@ fn from_wire_rejects_out_of_set() {
 }
 
 #[test]
-fn from_wire_accepts_every_defined_value() {
+// The record id convention keeps the document token verbatim (`101A1`).
+#[allow(non_snake_case)]
+fn spec_101A1_7_2_3_1_01_cot_semantics() {
     use CauseOfTransmission::*;
     let cases = [
         (1, Periodic),

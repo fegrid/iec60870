@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn startdt_handshake() {
+    fn spec_104_5_3_02_startdt_stopdt_control() {
         let (apci, asdu) = params();
         let s = Cs104Session::<Stopped>::new(apci, asdu);
         let (s, bytes) = s.send_startdt();

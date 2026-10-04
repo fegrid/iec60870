@@ -263,7 +263,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn u_frame_round_trip() {
+    fn spec_104_5_01_apci_delimiting_elements() {
         let mut buf = [0u8; 6];
         let n = encode_u_frame(UFrame::StartDtAct, &mut buf).unwrap();
         assert_eq!(n, 6);
