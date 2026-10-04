@@ -180,7 +180,7 @@ mod tests {
     }
     // ---- C.2 [P0] k-window stress at boundary values -----------------
     //
-    // See `specs/CONFIDENCE_TEST_BACKLOG.md` §C.2 for context.
+    // See requirement 104-5.1-01 in the spec-traceability records.
 
     #[test]
     fn k_one_blocks_second_until_ack() {
